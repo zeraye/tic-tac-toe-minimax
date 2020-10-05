@@ -2,31 +2,21 @@ import random
 import math
 
 board = [i for i in range(9)]
-last_move = None
 
 def draw():
     for i in range(3):
-        print(board[i * 3], '|', board[i * 3 + 1], '|', board[i* 3 + 2])
+        print(board[i * 3], '|', board[i * 3 + 1], '|', board[i * 3 + 2])
         print('-' * 10)
 
-def check(item, board):
-    if board[0] == board[1] == board[2] == item or board[3] == board[4] == board[5] == item or board[6] == board[7] == board[8] == item: return True
-    elif board[0] == board[3] == board[6] == item or board[1] == board[4] == board[7] == item or board[2] == board[5] == board[8] == item: return True
-    elif board[0] == board[4] == board[8] == item or board[2] == board[4] == board[6] == item: return True
-    return False
+def check(board, player):
+    for i in range(3):
+        if board[i * 3] == board[i * 3 + 1] == board[i * 3 + 2] == player or board[i] == board[i + 3] == board[i + 6] == player: return True
+    return True if board[0] == board[4] == board[8] == player or board[2] == board[4] == board[6] == player else False
 
-def long_check(board):
-    if check('X', board): return 'human'
-    elif check('O', board): return 'ai'
-    elif len(possible_moves(board)) == 0: return 'draw'
-    return None
-
-def end():
-    if long_check(board) != None: draw()
-    if long_check(board) == 'human': print('You have won!')
-    elif long_check(board) == 'ai': print('You have lost!')
-    elif long_check(board) == 'draw': print('Draw!')
-    return long_check(board) != None
+def exact_check(board):
+    if check(board, 'O'): return -1
+    elif check(board, 'X'): return 1
+    return None if check(board, 'O') == check(board, 'X') else 0
 
 def possible_moves(board):
     return [i for i in range(9) if type(board[i]) is int]
@@ -35,36 +25,51 @@ def make_best_move():
     best_score = -math.inf
     best_move = None
     for move in possible_moves(board):
-        board[move] = 'O'
-        score = minimax(False, board)
+        board[move] = 'X'
+        score = minimax(True, board)
+        print('move ', move, ' -> score', score)
         board[move] = move
         if score > best_score:
             best_score = score
             best_move = move
     return best_move
 
+def minimax(is_max, board):
+    if exact_check(board) != None: return exact_check(board)
+    player = 'O' if is_max else 'X'
 
-def minimax(is_max_turn, board):
-    if long_check(board) == 'draw': return 0
-    elif long_check(board) == 'ai': return 1
-    elif long_check(board) == 'human': return -1
-    if is_max_turn: player = 'O'
-    else: player = 'X'
-    scores = []
-    for move in possible_moves(board):
-        board[move] = player
-        scores.append(minimax(not is_max_turn, board))
-        board[move] = move
-    return max(scores) if is_max_turn else min(scores)
+    score = []
+
+    if is_max:
+        max_eval = -math.inf
+        for move in possible_moves(board):
+            board[move] = player
+            eval = minimax(not is_max, board)
+            board[move] = move
+            max_eval = max(max_eval, eval)
+        score.append(max_eval)
+        # return max_eval
+    else:
+        min_eval = math.inf
+        for move in possible_moves(board):
+            board[move] = player
+            eval = minimax(not is_max, board)
+            board[move] = move
+            min_eval = min(min_eval, eval)
+        score.append(min_eval)
+        # return min_eval
+
+    return max(score) if is_max else min(score)
 
 while True:
+    if exact_check(board) != None: break
     draw()
-    while True:
-        turn = int(input('Your move: '))
-        if type(board[turn]) is int:
-            board[turn] = 'X'
-            break
-        print('Incorrect move, try again!')
-    if end(): break
-    board[make_best_move()] = 'O'
-    if end(): break
+
+    turn = int(input('Your move: '))
+    board[turn] = 'O'
+
+    if exact_check(board) != None: break
+
+    board[make_best_move()] = 'X'
+
+draw()
